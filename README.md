@@ -59,6 +59,10 @@ Example: (running with 10 cores maximum)
 snakemake -p --config tsv=igsr_NA18507_undefined.tsv reference_path=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_fastCN chrom_sizes=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_fastCN/ref/GRCh38_BSM.chromsizes -j 15
 ```
 
+Overview of rules:
+
+![Rule graph](figs/rulegraph.png)
+
 ## Limitations and future directions
 
 Limitations:
