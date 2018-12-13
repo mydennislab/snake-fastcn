@@ -31,7 +31,7 @@ EXTENSION = list(set([x.split(".",1)[1] for x in FILENAMES]))
 # WORKFLOW SET-UP
 # ---------------
 
-TARGETS = expand("windows/{acc}.depth.3kb.bed.CN.bb", acc = ACCESSIONS)
+TARGETS = expand("bigBed/{acc}.depth.3kb.bed.CN.bb", acc = ACCESSIONS)
 
 rule all:
   input:
@@ -150,14 +150,16 @@ rule depth_to_cn:
 
 rule bed2bigBed:
   input:
-    bed = "windows/{acc}.depth.3kb.bed.CN.bed",
+    bedGraph = "windows/{acc}.depth.3kb.bed.CN.bed",
     chromsizes = CHROM_SIZES
   output:
-    sorted = temp("windows/{acc}.depth.3kb.bed.CN.srt.bed"),
-    bigbed = "windows/{acc}.depth.3kb.bed.CN.bb"
+    bed9 = "bigBed/{acc}.depth.3kb.bed.CN.bed9",
+    sorted = temp("bigBed/{acc}.depth.3kb.bed.CN.srt.bed9"),
+    bigbed = temp("bigBed/{acc}.depth.3kb.bed.CN.bb")
   shell:
     '''
-    sort -k1,1 -k2,2n {input.bed} > {output.sorted}
-    bedToBigBed {output.sorted} {input.chromsizes} {output.bigbed}  
+    python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9} 
+    sort -k1,1 -k2,2n {output.bed9} > {output.sorted}
+    bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}  
     '''
  
