@@ -36,7 +36,7 @@ def main():
     df['itemRgb'] = [get_color(x) for x in df['label']]
     
     # Saves output as bed 9 format
-    df.to_csv(args.bed9, sep = '\t')
+    df.to_csv(args.bed9, sep = '\t', header = False, index = False)
  
 if __name__ == '__main__':
     main()
