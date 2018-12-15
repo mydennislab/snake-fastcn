@@ -25,7 +25,7 @@ def main():
     args = p.parse_args()
     
     # Reads bedGraph file 
-    df = pd.read_csv(args.bed, delimiter = '\t', names = ['chom','chromStart','chromEnd','label'])
+    df = pd.read_csv(args.bed, delimiter = '\t', names = ['chrom','chromStart','chromEnd','label'])
 
     # Creates new columns
     df['label'] = [round(x) for x in df['label']]   
