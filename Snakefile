@@ -9,51 +9,52 @@ import re
 import pandas as pd
 
 # -----------
-# Config-file
+# CONFIG FILE
 # -----------
 
-TSV = config['tsv']
-REFERENCE_PATH = config["reference_path"]
-CHROM_SIZES = config["chrom_sizes"]
+SAMPLE = config['sample']
+URLS = config['urls']
+REFERENCE_PATH = config['reference_path']
+CHROM_SIZES = config['chrom_sizes']
 
-# -----------------------
-# Variables and functions
-# -----------------------
+# -----------------
+# VARIABLES PARSING
+# -----------------
 
-df = pd.read_csv(TSV, delimiter = '\t')
-URLS = df['url'].tolist() # urls of fastq files to download
-FILENAMES = [os.path.basename(x) for x in URLS if "_1" in x or "_2" in x] # fastq filenames to download
-SAMPLES = list(set(df['Sample'].tolist())) # individuals in tsv
-ACCESSIONS = list(set([x.split("_")[0] for x in FILENAMES]))
-EXTENSION = list(set([x.split(".",1)[1] for x in FILENAMES]))
+def parse_filename(filename):
+  accession = re.split("_|\.", filename, maxsplit = 2)[0]
+  extension = re.split("_|\.", filename, maxsplit = 2)[2]
+  return accession, extension
+
+urlsfile = pd.read_csv(URLS, delimiter = '\n', names = ['url'])
+urls = urlsfile['url'].tolist()
+filenames = [os.path.basename(x) for x in urls if "_1" in x or "_2" in x]
+extensions = dict([parse_filename(x) for x in filenames])
+accessions = list(extensions.keys())
 
 # ---------------
-# WORKFLOW SET-UP
+# WORKFLOW TARGET
 # ---------------
-
-TARGETS = expand("bigBed/{acc}.depth.3kb.bed.CN.bb", acc = ACCESSIONS)
 
 rule all:
   input:
-    TARGETS
+    expand("bigBed/{smp}.depth.3kb.bed.CN.bb", smp = SAMPLE)
 
 # -------------
-# Data download
+# DATA DOWNLOAD
 # -------------
 
 rule download_fastq:
-  input:
-    TSV
   output:
-    expand("fastq/{filename}", filename = FILENAMES)
+    expand("fastq/{filename}", filename = filenames)
   shell:
     '''
-    cut -f1 {input} | tail -n +2 | xargs -P4 wget -P fastq
+    cat {URLS} | xargs -P 5 wget -P fastq
     '''
 
-# -----------------------
-# Reference pre-treatment
-# -----------------------
+# --------------------
+# REFERENCE PROCESSING
+# --------------------
 
 rule gc_correction_ref:
   input:
@@ -78,13 +79,19 @@ rule index_masked:
     '''
 
 # --------------------
-# Mapping to reference
+# MAPPING TO REFERENCE
 # --------------------
+
+def accession_forward(wildcards):
+  return "fastq/"+wildcards.acc+"_1."+extensions.get(wildcards.acc)
+
+def accession_reverse(wildcards):
+  return "fastq/"+wildcards.acc+"_2."+extensions.get(wildcards.acc)
 
 rule mapping:
   input:
-    forward = expand("fastq/{{acc}}_1.{ext}", ext = EXTENSION),
-    reverse = expand("fastq/{{acc}}_2.{ext}", ext = EXTENSION),
+    forward = accession_forward,
+    reverse = accession_reverse,
     reference = REFERENCE_PATH+"/masked/GRCh38_BSM.fa",
     gccontrol = REFERENCE_PATH+"/ref/GRCh38_BSM.GC_control.bin"
   output:
@@ -97,9 +104,9 @@ rule mapping:
     extract-from-fastq36-pair.py --in1 {input.forward} --in2 {input.reverse} | /share/dennislab/programs/mrsfast/mrsfast --search {input.reference} --seq /dev/fd/0 --disable-nohits --mem 16 --threads {threads} -e 2 --outcomp -o {params}
     '''
 
-# -----------------------------------
-# GC-corrected read-depth calculation 
-# -----------------------------------
+# -----------------------
+# GC-CORRECTED READ-DEPTH
+# -----------------------
 
 rule gc_correction_sam:
   input:
@@ -107,59 +114,80 @@ rule gc_correction_sam:
     reference = REFERENCE_PATH+"/ref/GRCh38_BSM.fa.fai",
     gccontrol = REFERENCE_PATH+"/ref/GRCh38_BSM.GC_control.bin"
   output:
-    bpdepth = "binary/{acc}.bin.gz"
+    bpdepth = "binary/{acc}.bin"
   params:
     "binary/{acc}"
   shell:
     '''
     zcat {input.alignment} | SAM_GC_correction {input.reference} {input.gccontrol} /dev/fd/0 {params}
-    gzip {params}.bin
     '''
+
+# ------------
+# COMBINE RUNS
+# ------------
+
+rule combine_depth:
+  input:
+    expand("binary/{acc}.bin", acc = accessions)
+  output:
+    "binary/{smp}.bin.gz"
+  params:
+    accessions = " ".join(expand("binary/{acc}.bin", acc = accessions)),
+    combined = "binary/{smp}.bin"
+  shell:
+    '''
+    depth_combine -H {params.accessions} > {params.combined}
+    gzip {params.combined}
+    '''
+
+# ------------------------------------
+# CONVERT READ-DEPTH FROM BP TO WINDOW
+# ------------------------------------
 
 rule bp_to_windows:
   input:
-    bpdepth = "binary/{acc}.bin.gz",
+    bpdepth = "binary/{smp}.bin.gz",
     chromlen = REFERENCE_PATH+"/ref/GRCh38_BSM.fa.fai", 
     windows = REFERENCE_PATH+"/windows/GRCh38_bsm.3kb.bed"
   output:
-    windepth = "windows/{acc}.depth.3kb.bed"
+    windepth = "windows/{smp}.depth.3kb.bed"
   shell:
     '''
     perbp-to-windows.py --depth {input.bpdepth} --out {output.windepth} --chromlen {input.chromlen} --windows {input.windows}
     '''
 
-# -------------------------------------
-# Read-depth to copy number calculation
-# -------------------------------------
+# -------------------------
+# READ-DEPTH TO COPY NUMBER
+# -------------------------
 
 rule depth_to_cn:
   input:
-     depth = "windows/{acc}.depth.3kb.bed",
+     depth = "windows/{smp}.depth.3kb.bed",
      auto = REFERENCE_PATH+"/windows/GRCh38_bsm.3kb.bed.autoControl",
      chrx = REFERENCE_PATH+"/windows/GRCh38_bsm.3kb.bed.chrXnonParControl"
   output:
-     "windows/{acc}.depth.3kb.bed.CN.bed"
+     "windows/{smp}.depth.3kb.bed.CN.bed"
   shell:
     '''
     depth-to-cn.py --in {input.depth} --autocontrol {input.auto} --chrX {input.chrx}
     '''
 
-# ------------------------------------------------
-# Merge samples by individual  + bigBed conversion
-# ------------------------------------------------
+# -----------------
+# BIGBED CONVERSION
+# -----------------
 
 rule bed2bigBed:
   input:
-    bedGraph = "windows/{acc}.depth.3kb.bed.CN.bed",
+    bedGraph = "windows/{smp}.depth.3kb.bed.CN.bed",
     chromsizes = CHROM_SIZES
   output:
-    bed9 = "bigBed/{acc}.depth.3kb.bed.CN.bed9",
-    sorted = temp("bigBed/{acc}.depth.3kb.bed.CN.srt.bed9"),
-    bigbed = temp("bigBed/{acc}.depth.3kb.bed.CN.bb")
+    bed9 = "bigBed/{smp}.depth.3kb.bed.CN.bed9",
+    sorted = temp("bigBed/{smp}.depth.3kb.bed.CN.srt.bed9"),
+    bigbed = temp("bigBed/{smp}.depth.3kb.bed.CN.bb")
   shell:
     '''
     python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9} 
     sort -k1,1 -k2,2n {output.bed9} > {output.sorted}
     bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}  
     '''
- 
+
