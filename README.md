@@ -70,6 +70,10 @@ Example: (running with 10 cores maximum)
 snakemake -p --config sample=NA18507 urls=NA18507.urls reference_path=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_fastCN chrom_sizes=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_fastCN/ref/GRCh38_BSM.chromsizes -j 10
 ```
 
+## Pipeline overview
+
+![Rulegraph](figs/rulegraph.png)
+
 ## Limitations
 
 - This pipeline uses only paired-end reads with the extensions "_1" and "_2". This can be modified in the future (if we want to use single-end reads).
