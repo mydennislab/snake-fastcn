@@ -17,6 +17,8 @@ URLS = config['urls']
 REFERENCE_PATH = config['reference_path']
 CHROM_SIZES = config['chrom_sizes']
 
+WINDOWSIZE = '1kb'
+
 # -----------------
 # VARIABLES PARSING
 # -----------------
@@ -38,7 +40,7 @@ accessions = list(extensions.keys())
 
 rule all:
   input:
-    expand("bigBed/{smp}.depth.3kb.bed.CN.bb", smp = SAMPLE)
+    expand("bigBed/{smp}.depth."+WINDOWSIZE+".bed.CN.bb", smp = SAMPLE)
 
 # -------------
 # DATA DOWNLOAD
@@ -47,9 +49,10 @@ rule all:
 rule download_fastq:
   output:
     expand("fastq/{filename}", filename = filenames)
+  threads: 5
   shell:
     '''
-    cat {URLS} | xargs -P 5 wget -P fastq
+    cat {URLS} | xargs -P {threads} wget -P fastq
     '''
 
 # --------------------
@@ -66,7 +69,7 @@ rule gc_correction_ref:
   shell:
     '''
     GC_control_gen {input.fasta} {input.exclude} {input.gaps} 400 {output.bin}
-    ''' 
+    '''
 
 rule index_masked:
   input:
@@ -147,10 +150,10 @@ rule combine_depth:
 rule bp_to_windows:
   input:
     bpdepth = "binary/{smp}.bin.gz",
-    chromlen = REFERENCE_PATH+"/ref/GRCh38_BSM.fa.fai", 
-    windows = REFERENCE_PATH+"/windows/GRCh38_bsm.3kb.bed"
+    chromlen = REFERENCE_PATH+"/ref/GRCh38_BSM.fa.fai",
+    windows = REFERENCE_PATH+"/windows/GRCh38_bsm."+WINDOWSIZE+".bed"
   output:
-    windepth = "windows/{smp}.depth.3kb.bed"
+    windepth = "windows/{smp}.depth."+WINDOWSIZE+".bed"
   shell:
     '''
     perbp-to-windows.py --depth {input.bpdepth} --out {output.windepth} --chromlen {input.chromlen} --windows {input.windows}
@@ -162,11 +165,11 @@ rule bp_to_windows:
 
 rule depth_to_cn:
   input:
-     depth = "windows/{smp}.depth.3kb.bed",
-     auto = REFERENCE_PATH+"/windows/GRCh38_bsm.3kb.bed.autoControl",
-     chrx = REFERENCE_PATH+"/windows/GRCh38_bsm.3kb.bed.chrXnonParControl"
+     depth = "windows/{smp}.depth."+WINDOWSIZE+".bed",
+     auto = REFERENCE_PATH+"/windows/GRCh38_bsm."+WINDOWSIZE+".bed.autoControl",
+     chrx = REFERENCE_PATH+"/windows/GRCh38_bsm."+WINDOWSIZE+".bed.chrXnonParControl"
   output:
-     "windows/{smp}.depth.3kb.bed.CN.bed"
+     "windows/{smp}.depth."+WINDOWSIZE+".bed.CN.bed"
   shell:
     '''
     depth-to-cn.py --in {input.depth} --autocontrol {input.auto} --chrX {input.chrx}
@@ -178,16 +181,15 @@ rule depth_to_cn:
 
 rule bed2bigBed:
   input:
-    bedGraph = "windows/{smp}.depth.3kb.bed.CN.bed",
+    bedGraph = "windows/{smp}.depth."+WINDOWSIZE+".bed.CN.bed",
     chromsizes = CHROM_SIZES
   output:
-    bed9 = "bigBed/{smp}.depth.3kb.bed.CN.bed9",
-    sorted = temp("bigBed/{smp}.depth.3kb.bed.CN.srt.bed9"),
-    bigbed = temp("bigBed/{smp}.depth.3kb.bed.CN.bb")
+    bed9 = temp("bigBed/{smp}.depth."+WINDOWSIZE+".bed.CN.bed9"),
+    sorted = temp("bigBed/{smp}.depth."+WINDOWSIZE+".bed.CN.srt.bed9"),
+    bigbed = "bigBed/{smp}.depth."+WINDOWSIZE+".bed.CN.bb"
   shell:
     '''
-    python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9} 
+    python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9}
     sort -k1,1 -k2,2n {output.bed9} > {output.sorted}
-    bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}  
+    bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}
     '''
-
