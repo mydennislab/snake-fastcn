@@ -29,6 +29,7 @@ FastCN and MrsFast should be manually added to your path.
 
 Example: activating the environment and adding fastCN and MrsFast to the path:
 ```bash
+export PATH=/share/dennislab/programs/new_miniconda3/bin/:$PATH
 source activate snakecn
 export PATH="/share/dennislab/programs/fastCN:/share/dennislab/programs/mrsfast/:$PATH"
 ```
