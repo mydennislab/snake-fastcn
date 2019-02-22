@@ -54,6 +54,8 @@ awk '{if($1=="chrX"){print}}' GRCh38_bsm.1kb.control > GRCh38_bsm.1kb.bed.chrXno
 awk '{if($1 !~ "_" && $1 != "chrX" && $1 != "chrM" && $1 != "chrY" && $1 != "chrEBV"){print}}' GRCh38_bsm.1kb.control > GRCh38_bsm.1kb.bed.autoControl
 ```
 
+> The custom reference genome for this analysis is located in: `/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_fastCN`
+
 ## Running pipeline with Snakemake
 
 This pipeline needs a file containing complete link addresses for all fastq files related to that sample.
