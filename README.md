@@ -63,8 +63,7 @@ This pipeline needs a file containing complete link addresses for all fastq file
 Example:
 ```
 ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/NA18507/sequence_read/ERR002346_2.filt.fastq.gz
-ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/NA18507/sequence_read/ERR002351_2.filt.fastq.gz
-ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/NA18507/sequence_read/ERR002346.filt.fastq.gz
+ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/NA18507/sequence_read/ERR002346_1.filt.fastq.gz
 ```
 
 Then just run:
