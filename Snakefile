@@ -48,7 +48,7 @@ rule all:
 
 rule download_fastq:
   output:
-    expand("fastq/{filename}", filename = filenames)
+    temp(expand("fastq/{filename}", filename = filenames))
   threads: 5
   shell:
     '''
