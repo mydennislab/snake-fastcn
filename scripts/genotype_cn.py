@@ -26,7 +26,7 @@ def main():
     output['round_cnv'] = pd.Series(round(x) for x in cnv)
 
     # Saves output
-    output.to_csv(args.sample+".cnv", sep = '\t', header = False, index = False)
+    output.to_csv(args.sample+"_cnv.tsv", sep = '\t', header = False, index = False)
 
 if __name__ == '__main__':
     main()
