@@ -95,8 +95,8 @@ To run these scripts create a python3 environment with pandas installed.
 
 Example genotyping:
 ```bash
-python genotype_cn.py --sample NA18507 --copynumber windows/NA18507.depth.1kb.bed.CN.bed --genes data/genotypable_regions.bed 
-python genotype_cn_global.py --path windows/ --genes data/genotypable_regions.bed
+python scripts/genotype_cn.py --sample NA18507 --copynumber windows/NA18507.depth.1kb.bed.CN.bed --genes data/genotypable_regions.bed 
+python scripts/genotype_cn_global.py --path windows/ --genes data/genotypable_regions.bed
 ```
 
 Results will be stored in `NA18507_cnv.tsv` and `samples_cnv.tsv` respectively.
