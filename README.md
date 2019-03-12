@@ -83,3 +83,20 @@ snakemake -p --config sample=NA18507 urls=NA18507.urls reference_path=/share/den
 ## Limitations
 
 - This pipeline uses only paired-end reads with the extensions "_1" and "_2". This can be modified in the future (if we want to use single-end reads).
+- This pipeline is **not paralog specific**
+
+## Extra scripts for genotyping
+
+Additional scripts to genotype copy number for certain genes of interest are provided in the scripts folder. 
+- `genotype_cn.py` receives a bed file with regions for copy number genotyping, sample name and its respective bed file with copy number estimates
+- `genotype_cn_global.py` receives a bed file with regions for copy number genotyping, and path that contains copy number estimates for one or several individuals. The script will automatically read all files with extension "CN.bed" and output a tsv matrix with copy number variants for each individual
+
+To run these scripts create a python3 environment with pandas installed.
+
+Example genotyping:
+```bash
+python genotype_cn.py --sample NA18507 --copynumber windows/NA18507.depth.1kb.bed.CN.bed --genes data/genotypable_regions.bed 
+python genotype_cn_global.py --path windows/ --genes data/genotypable_regions.bed
+```
+
+Results will be stored in `NA18507_cnv.tsv` and `samples_cnv.tsv` respectively.
