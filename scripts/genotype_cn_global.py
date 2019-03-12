@@ -21,7 +21,7 @@ def main():
     genes = pd.read_csv(args.genes, delimiter = '\t', names = ['chrom','chromStart','chromEnd','geneName'])
     output = genes
 
-    # For each sample, envxtracts copy number for each region and calculates its mean
+    # For each sample, extracts copy number for each region and calculates its mean
     # Borders of the region are left out
     for file in mylist:
         sample = parse_filename(file)
