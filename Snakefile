@@ -48,11 +48,11 @@ rule all:
 
 rule download_fastq:
   output:
-    temp(expand("fastq/{filename}", filename = filenames))
-  threads: 5
+    expand("fastq/{filename}", filename = filenames)
+  threads: 10
   shell:
     '''
-    cat {URLS} | xargs -P {threads} wget -P fastq
+    cat {URLS} | xargs -n 1 -P 10 wget --directory-prefix=fastq
     '''
 
 # --------------------
@@ -61,11 +61,11 @@ rule download_fastq:
 
 rule gc_correction_ref:
   input:
-    fasta = REFERENCE_PATH+"/ref/GRCh38_BSM.fa",
-    exclude = REFERENCE_PATH+"/ref/toexclude.bed.sorted.merge.sorted2",
-    gaps = REFERENCE_PATH+"/ref/GRCh38_bsm.gaps.bed.slop36.sorted.merged.sorted2"
+    fasta = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST_unmasked.fa",
+    exclude = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST.exclude.bed.sort2",
+    gaps = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST.gaps.bed.slop36.sorted.merged.sort2"
   output:
-    bin = REFERENCE_PATH+"/ref/GRCh38_BSM.GC_control.bin"
+    bin = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST.GC_control.bin"
   shell:
     '''
     GC_control_gen {input.fasta} {input.exclude} {input.gaps} 400 {output.bin}
@@ -73,9 +73,9 @@ rule gc_correction_ref:
 
 rule index_masked:
   input:
-    fasta = REFERENCE_PATH+"/masked/GRCh38_BSM.fa"
+    fasta = REFERENCE_PATH+"/ref-WMDUST-masked/GRCh38_BSM_WMDUST_masked.fa"
   output:
-    index = REFERENCE_PATH+"/masked/GRCh38_BSM.fa.index"
+    index = REFERENCE_PATH+"/ref-WMDUST-masked/GRCh38_BSM_WMDUST_masked.fa.index"
   shell:
     '''
     /share/dennislab/programs/mrsfast/mrsfast --index {input.fasta}
@@ -95,8 +95,7 @@ rule mapping:
   input:
     forward = accession_forward,
     reverse = accession_reverse,
-    reference = REFERENCE_PATH+"/masked/GRCh38_BSM.fa",
-    gccontrol = REFERENCE_PATH+"/ref/GRCh38_BSM.GC_control.bin"
+    reference = REFERENCE_PATH+"/ref-WMDUST-masked/GRCh38_BSM_WMDUST_masked.fa"
   output:
     "mapping/{acc}.sam.gz"
   params:
@@ -114,8 +113,8 @@ rule mapping:
 rule gc_correction_sam:
   input:
     alignment = "mapping/{acc}.sam.gz",
-    reference = REFERENCE_PATH+"/ref/GRCh38_BSM.fa.fai",
-    gccontrol = REFERENCE_PATH+"/ref/GRCh38_BSM.GC_control.bin"
+    reference = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST_unmasked.fa.fai",
+    gccontrol = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST.GC_control.bin"
   output:
     bpdepth = "binary/{acc}.bin"
   params:
@@ -150,8 +149,8 @@ rule combine_depth:
 rule bp_to_windows:
   input:
     bpdepth = "binary/{smp}.bin.gz",
-    chromlen = REFERENCE_PATH+"/ref/GRCh38_BSM.fa.fai",
-    windows = REFERENCE_PATH+"/windows/GRCh38_bsm."+WINDOWSIZE+".bed"
+    chromlen = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST_unmasked.fa.fai", 
+    windows = REFERENCE_PATH+"/windows-WMDUST/GRCh38_BSM_WMDUST."+WINDOWSIZE+".bed"
   output:
     windepth = "windows/{smp}.depth."+WINDOWSIZE+".bed"
   shell:
@@ -166,8 +165,8 @@ rule bp_to_windows:
 rule depth_to_cn:
   input:
      depth = "windows/{smp}.depth."+WINDOWSIZE+".bed",
-     auto = REFERENCE_PATH+"/windows/GRCh38_bsm."+WINDOWSIZE+".bed.autoControl",
-     chrx = REFERENCE_PATH+"/windows/GRCh38_bsm."+WINDOWSIZE+".bed.chrXnonParControl"
+     auto = REFERENCE_PATH+"/windows-WMDUST/GRCh38_BSM_WMDUST."+WINDOWSIZE+".autoControl.bed",
+     chrx = REFERENCE_PATH+"/windows-WMDUST/GRCh38_BSM_WMDUST."+WINDOWSIZE+".chrXnonParControl.bed"
   output:
      "windows/{smp}.depth."+WINDOWSIZE+".bed.CN.bed"
   shell:
@@ -189,7 +188,8 @@ rule bed2bigBed:
     bigbed = "bigBed/{smp}.depth."+WINDOWSIZE+".bed.CN.bb"
   shell:
     '''
-    python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9}
+    python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9} 
     sort -k1,1 -k2,2n {output.bed9} > {output.sorted}
-    bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}
+    bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}  
     '''
+
