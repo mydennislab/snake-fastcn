@@ -73,7 +73,7 @@ snakemake -p --config sample="sample_name" urls="filename.urls" reference_path="
 
 Example: (running with 10 cores maximum)
 ```bash
-snakemake -p --config sample=NA18507 urls=NA18507.urls reference_path=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_fastCN chrom_sizes=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_fastCN/ref/GRCh38_BSM.chromsizes -j 10
+snakemake -p --config sample=NA18507 urls=NA18507.urls reference_path=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_WMDUST chrom_sizes=/share/dennislab/databases/assemblies/GRCh38/GRCh38_BSM_WMDUST/ref-WMDUST/GRCh38_BSM.chromsizes -j 10
 ```
 
 ## Pipeline overview
