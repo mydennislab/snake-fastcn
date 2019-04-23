@@ -1,8 +1,9 @@
 """
 Title: SnakeFastCN
 Desc: Snakemake pipeline for copy number determination using Illumina reads
-- This pipeline is based on Jeff Kidd's copy number calculation pipeline
+- This pipeline is based in Jeff Kidd's copy number calculation pipeline
 - This version contains an update in combine_depth to check for the case of one url
+- This version skips fast q download step for files where fast q was manually downloaded
 """
 
 import os
@@ -25,13 +26,13 @@ WINDOWSIZE = '1kb'
 # -----------------
 
 def parse_filename(filename):
-  accession = re.split("_|\.", filename, maxsplit = 2)[0]
-  extension = re.split("_|\.", filename, maxsplit = 2)[2]
+  accession = re.split("_1|_2", filename, maxsplit = 2)[0]
+  extension = re.split("_1|_2", filename, maxsplit = 2)[1]
   return accession, extension
 
 urlsfile = pd.read_csv(URLS, delimiter = '\n', names = ['url'])
 urls = urlsfile['url'].tolist()
-filenames = [os.path.basename(x) for x in urls if "_1" in x or "_2" in x]
+filenames = urls
 extensions = dict([parse_filename(x) for x in filenames])
 accessions = list(extensions.keys())
 
@@ -47,14 +48,14 @@ rule all:
 # DATA DOWNLOAD
 # -------------
 
-rule download_fastq:
-  output:
-    expand("fastq/{filename}", filename = filenames)
-  threads: 10
-  shell:
-    '''
-    cat {URLS} | xargs -n 1 -P 10 wget --directory-prefix=fastq
-    '''
+# rule download_fastq:
+  #output:
+   # expand("fastq/{filename}", filename = filenames)
+ # threads: 10
+ # shell:
+  #  '''
+   # cat {URLS} | xargs -n 1 -P 10 wget --directory-prefix=fastq
+   # '''
 
 # --------------------
 # REFERENCE PROCESSING
@@ -87,10 +88,10 @@ rule index_masked:
 # --------------------
 
 def accession_forward(wildcards):
-  return "fastq/"+wildcards.acc+"_1."+extensions.get(wildcards.acc)
+  return "fastq/"+wildcards.acc+"_1"+extensions.get(wildcards.acc)
 
 def accession_reverse(wildcards):
-  return "fastq/"+wildcards.acc+"_2."+extensions.get(wildcards.acc)
+  return "fastq/"+wildcards.acc+"_2"+extensions.get(wildcards.acc)
 
 rule mapping:
   input:
@@ -153,7 +154,7 @@ rule combine_depth:
 rule bp_to_windows:
   input:
     bpdepth = "binary/{smp}.bin.gz",
-    chromlen = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST_unmasked.fa.fai", 
+    chromlen = REFERENCE_PATH+"/ref-WMDUST/GRCh38_BSM_WMDUST_unmasked.fa.fai",
     windows = REFERENCE_PATH+"/windows-WMDUST/GRCh38_BSM_WMDUST."+WINDOWSIZE+".bed"
   output:
     windepth = "windows/{smp}.depth."+WINDOWSIZE+".bed"
@@ -192,8 +193,7 @@ rule bed2bigBed:
     bigbed = "bigBed/{smp}.depth."+WINDOWSIZE+".bed.CN.bb"
   shell:
     '''
-    python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9} 
+    python3 scripts/bedToBed9.py {input.bedGraph} {output.bed9}
     sort -k1,1 -k2,2n {output.bed9} > {output.sorted}
-    bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}  
+    bedToBigBed -type=bed9 {output.sorted} {input.chromsizes} {output.bigbed}
     '''
-
