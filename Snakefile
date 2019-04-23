@@ -1,7 +1,8 @@
 """
 Title: SnakeFastCN
 Desc: Snakemake pipeline for copy number determination using Illumina reads
-- This pipeline is based in Jeff Kidd's copy number calculation pipeline
+- This pipeline is based on Jeff Kidd's copy number calculation pipeline
+- This version contains an update in combine_depth to check for the case of one url
 """
 
 import os
@@ -137,11 +138,14 @@ rule combine_depth:
   params:
     accessions = " ".join(expand("binary/{acc}.bin", acc = accessions)),
     combined = "binary/{smp}.bin"
-  shell:
-    '''
-    depth_combine -H {params.accessions} > {params.combined}
-    gzip {params.combined}
-    '''
+  run:
+    if len(accessions) <= 1: # check to see if there is only one url
+      shell("mv {params.accessions} {params.combined}")
+
+    else:
+      shell("depth_combine -H {params.accessions} > {params.combined}")
+
+    shell("gzip {params.combined}")
 
 # ------------------------------------
 # CONVERT READ-DEPTH FROM BP TO WINDOW
