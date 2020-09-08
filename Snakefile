@@ -53,7 +53,7 @@ rule download_fastq:
   threads: 10
   shell:
     '''
-    cat {URLS} | xargs -n 1 -P 10 wget --directory-prefix=fastq
+    cat {URLS} | xargs -n 1 -P {threads} wget --directory-prefix=fastq
     '''
 
 # --------------------
