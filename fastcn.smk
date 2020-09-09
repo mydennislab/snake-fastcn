@@ -28,21 +28,17 @@ GC_GAPS_BED = config['gc_gaps_bed']
 WINDOWS = config['windows']
 WINDOWSIZE = '1kb'
 
+PAIRED = False
+
 # -----------------
 # VARIABLES PARSING
 # -----------------
 
-def parse_filename(filename):
-  accession = re.split("_|\.", filename, maxsplit = 2)[0]
-  extension = re.split("_|\.", filename, maxsplit = 2)[2]
-  return accession, extension
-
-urlsfile = pd.read_csv(URLS, delimiter = '\n', names = ['url'])
-urls = urlsfile['url'].tolist()
-filenames = [os.path.basename(x) for x in urls if "_1" in x or "_2" in x]
-extensions = dict([parse_filename(x) for x in filenames])
-accessions = list(extensions.keys())
-
+if PAIRED:
+  IDS, = glob_wildcards("reads/{id}_1.fastq.gz")
+else:
+  IDS, = glob_wildcards("reads/{id}.fastq.gz")
+  
 # ---------------
 # WORKFLOW TARGET
 # ---------------
@@ -50,19 +46,6 @@ accessions = list(extensions.keys())
 rule all:
   input:
     expand("bigBed/{smp}.depth."+WINDOWSIZE+".bed.CN.bb", smp = SAMPLE)
-
-# -------------
-# DATA DOWNLOAD
-# -------------
-
-rule download_fastq:
-  output:
-    expand("fastq/{filename}", filename = filenames)
-  threads: 10
-  shell:
-    '''
-    cat {URLS} | xargs -n 1 -P {threads} wget --directory-prefix=fastq
-    '''
 
 # ------------------   
 # REFERENCE INDEXING
@@ -116,8 +99,7 @@ def accession_reverse(wildcards):
 
 rule mapping:
   input:
-    forward = accession_forward,
-    reverse = accession_reverse,
+    reads = 
     reference = MASKED_REF
   output:
     "mapping/{acc}.sam.gz"
@@ -182,6 +164,9 @@ rule make_windows:
     
     '''
 
+UNMASKED_REF+"."+WINDOWSIZE+".autoControl.bed
+UNMASKED_REF+"."+WINDOWSIZE+".chrXnonParControl.bed
+    
 rule bp_to_windows:
   input:
     bpdepth = "binary/{smp}.bin.gz",
@@ -191,7 +176,7 @@ rule bp_to_windows:
     windepth = "windows/{smp}.depth."+WINDOWSIZE+".bed"
   shell:
     '''
-    perbp-to-windows.py --depth {input.bpdepth} --out {output.windepth} --chromlen {input.chromlen} --windows {input.windows}
+    {FASTCN}/perbp-to-windows.py --depth {input.bpdepth} --out {output.windepth} --chromlen {input.chromlen} --windows {input.windows}
     '''
 
 # -------------------------
