@@ -116,7 +116,7 @@ locations of data:
 1. Activate Conda Environment
 
 ```bash
-export PATH=/share/dennislab/programs/new_miniconda3/bin/:$PATH
+export PATH=/share/dennislab/programs/dennis-miniconda/bin:$PATH
 source activate snakecn
 export PATH="/share/dennislab/programs/fastCN:/share/dennislab/programs/mrsfast/:$PATH"
 ```
