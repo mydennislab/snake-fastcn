@@ -119,6 +119,7 @@ locations of data:
 export PATH=/share/dennislab/programs/dennis-miniconda/bin:$PATH
 source activate snakecn
 export PATH="/share/dennislab/programs/fastCN:/share/dennislab/programs/mrsfast/:$PATH"
+module load samtools
 ```
 
 2. Directory requirements
