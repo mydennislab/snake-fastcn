@@ -67,7 +67,7 @@ rule cram_convert:
     temp("fastq/{smp}.fastq.gz")
   shell:
     """
-    samtools fastq {input} | gzip > {output}
+    samtools fastq {input} | gzip -c > {output}
     """
 
 # --------------------
