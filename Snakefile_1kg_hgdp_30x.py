@@ -103,7 +103,8 @@ rule gc_correction_sam:
     "binary/{smp}"
   shell:
     '''
-    zcat {input.alignment} | SAM_GC_correction {input.reference} {input.gccontrol} /dev/fd/0 {params} | gzip
+    zcat {input.alignment} | SAM_GC_correction {input.reference} {input.gccontrol} /dev/fd/0 {params}
+    gzip {params}.bin
     '''
 
 
