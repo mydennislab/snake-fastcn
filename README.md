@@ -90,7 +90,7 @@ snakemake -p --config sample=NA18507 urls=NA18507.urls reference_path=/share/den
 Additional scripts to genotype copy number for certain genes of interest are provided in the scripts folder.
 - `genotype_cn.py` receives a bed file with regions for copy number genotyping, sample name and its respective bed file with copy number estimates
 - `genotype_cn_global.py` receives a bed file with regions for copy number genotyping, and path that contains copy number estimates for one or several individuals. The script will automatically read all files with extension "CN.bed" and output a tsv matrix with copy number variants for each individual
-
+- `1kb_to_5kb_fastCN.py` receives a bed file with regions for copy number genotyping, and converts the windows from 1kb to 5kb in size, averaging their copy number. (Merges 5 consecutive windows in a provided bedfile and averages their copy number). 
 To run these scripts create a python3 environment with pandas installed.
 
 Example genotyping:
